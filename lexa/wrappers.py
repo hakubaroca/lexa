@@ -6,7 +6,6 @@ import mujoco_py
 from d4rl.kitchen.adept_envs.simulation.renderer import DMRenderer, MjPyRenderer
 from d4rl.kitchen.adept_envs.simulation.sim_robot import  RenderMode
 
-
 class Atari:
 
   LOCK = threading.Lock()
@@ -63,7 +62,6 @@ class Atari:
   def render(self, mode):
     return self._env.render(mode)
 
-
 class CollectDataset:
 
   def __init__(self, env, callbacks=None, precision=32):
@@ -114,7 +112,6 @@ class CollectDataset:
       raise NotImplementedError(value.dtype)
     return value.astype(dtype)
 
-
 class TimeLimit:
 
   def __init__(self, env, duration):
@@ -140,7 +137,6 @@ class TimeLimit:
     self._step = 0
     return self._env.reset()
 
-
 class NormalizeActions:
 
   def __init__(self, env):
@@ -164,7 +160,6 @@ class NormalizeActions:
     original = (action + 1) / 2 * (self._high - self._low) + self._low
     original = np.where(self._mask, original, action)
     return self._env.step(original)
-
 
 class OneHotAction:
 
@@ -200,7 +195,6 @@ class OneHotAction:
     reference = np.zeros(actions, dtype=np.float32)
     reference[index] = 1.0
     return reference
-
 
 class RewardObs:
 

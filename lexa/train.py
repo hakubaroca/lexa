@@ -1,7 +1,7 @@
 import os
 import functools
 import tools
-import tensorflow as tf
+import torch
 import numpy as np
 import pickle
 import pathlib
@@ -15,11 +15,11 @@ class GCDreamer(Dreamer):
       self._off_policy_handler = off_policy.GCOffPolicyOpt(config)
     super().__init__(config, logger, dataset)
     self._should_expl_ep = tools.EveryNCalls(config.expl_every_ep)
-    self.skill_to_use = tf.zeros([0], dtype=tf.float16)
+    self.skill_to_use = torch.zeros([0], dtype=torch.float16)
 
   def get_one_time_skill(self):
     skill = self.skill_to_use
-    self.skill_to_use = tf.zeros([0], dtype=tf.float16)
+    self.skill_to_use = torch.zeros([0], dtype=torch.float16)
     return skill
 
   def _policy(self, obs, state, training, reset):
@@ -38,7 +38,7 @@ class GCDreamer(Dreamer):
       if training and self._config.training_goals == 'batch':
         state[0]['image_goal'], state[0]['goal'] = self.sample_replay_goal(obs)
       else:
-        state[0]['image_goal'] = tf.cast(obs['image_goal'], self._float) / 255.0 - 0.5
+        state[0]['image_goal'] = (obs['image_goal'].type(self._float) / 255.0) - 0.5
       state[0]['skill'] = self.get_one_time_skill()
 
       # Toggle exploration
@@ -60,14 +60,14 @@ class GCDreamer(Dreamer):
     if self._config.labelled_env_multiplexing:
       assert obs['env_idx'].shape[0] == 1
       env_ids = random_batch['env_idx'][:, 0]
-      if tf.reduce_any(env_ids == obs['env_idx']):
-        ids = np.nonzero(env_ids == obs['env_idx'])[0]
-        images = tf.gather(images, ids)
-        states = tf.gather(states, ids)
+      if torch.any(env_ids == obs['env_idx']):
+        ids = (env_ids == obs['env_idx']).nonzero(as_tuple=True)[0]
+        images = images.index_select(0, ids)
+        states = states.index_select(0, ids)
     
-    random_goals = tf.reshape(images, (-1,) + tuple(images.shape[2:]))
-    random_goal_states = tf.reshape(states, (-1,) + tuple(states.shape[2:]))
-    # random_goals = tf.random.shuffle(random_goals)
+    random_goals = images.view(-1, *images.shape[2:])
+    random_goal_states = states.view(-1, *states.shape[2:])
+    # random_goals = random_goals[torch.randperm(random_goals.size()[0])]
     return random_goals[:obs['image_goal'].shape[0]], random_goal_states[:obs['image_goal'].shape[0]]
 
 
